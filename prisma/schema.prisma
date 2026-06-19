@@ -1,0 +1,623 @@
+// =============================================================================
+// CETEA — Centro Especializado de Atendimento às Pessoas com TEA
+// Schema do banco de dados (PostgreSQL)
+// =============================================================================
+// Convenções:
+//   - Todos os IDs são CUID (string), portáveis e seguros para exposição.
+//   - Timestamps padronizados: createdAt / updatedAt.
+//   - Exclusão lógica via deletedAt onde a auditoria exige rastreabilidade.
+//   - Estrutura preparada para multiunidade / multimunicípio / multiusuário.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================ ENUMS ==========================================
+
+enum UserRole {
+  ADMIN          // Administrador Geral — controle total
+  COORDENADOR    // Gerencia unidade
+  RECEPCAO       // Agenda e cadastros
+  PROFISSIONAL   // Pacientes, prontuários, atendimentos, relatórios
+  AUDITOR        // Somente leitura
+}
+
+enum Sexo {
+  MASCULINO
+  FEMININO
+  INTERSEXO
+  NAO_INFORMADO
+}
+
+enum NivelSuporteTEA {
+  NIVEL_1   // Exige apoio
+  NIVEL_2   // Exige apoio substancial
+  NIVEL_3   // Exige apoio muito substancial
+  NAO_AVALIADO
+}
+
+enum StatusPaciente {
+  ATIVO
+  INATIVO
+  FILA_ESPERA
+  ALTA
+  TRANSFERIDO
+}
+
+enum TipoAgendamento {
+  CONSULTA
+  AVALIACAO
+  REAVALIACAO
+  TERAPIA
+}
+
+enum StatusAgendamento {
+  AGENDADO
+  CONFIRMADO
+  REALIZADO
+  FALTA
+  CANCELADO
+}
+
+enum CanalNotificacao {
+  WHATSAPP
+  EMAIL
+}
+
+enum StatusNotificacao {
+  PENDENTE
+  ENVIADA
+  ENTREGUE
+  FALHA
+}
+
+enum TipoDocumento {
+  LAUDO
+  EXAME
+  RELATORIO
+  RECEITA
+  ENCAMINHAMENTO
+  OUTRO
+}
+
+enum TipoRegistroProntuario {
+  ANAMNESE
+  AVALIACAO_MULTIPROFISSIONAL
+  EVOLUCAO
+  PARECER
+  ENCAMINHAMENTO
+  INTERCONSULTA
+}
+
+enum ProtocoloTipo {
+  M_CHAT_R
+  CARS
+  SNAP_IV
+  ATA
+  ESCALA_DESENVOLVIMENTO
+}
+
+enum StatusPTI {
+  EM_ELABORACAO
+  ATIVO
+  CONCLUIDO
+  SUSPENSO
+}
+
+enum AuditAcao {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  EXPORT
+  VIEW
+}
+
+// ============================ TENANT / INSTITUIÇÃO ===========================
+// White-label: nome, logo e cores aplicados a todo o sistema.
+
+model Instituicao {
+  id            String   @id @default(cuid())
+  nome          String
+  logoUrl       String?
+  corPrimaria   String   @default("#0E7C86")
+  corSecundaria String   @default("#0B5563")
+  corAcento     String   @default("#F59E0B")
+
+  unidades      Unidade[]
+  usuarios      User[]
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("instituicoes")
+}
+
+// ============================ USUÁRIOS / RBAC ================================
+
+model User {
+  id            String    @id @default(cuid())
+  nome          String
+  email         String    @unique
+  senhaHash     String                       // bcrypt
+  role          UserRole  @default(RECEPCAO)
+  ativo         Boolean   @default(true)
+  ultimoLogin   DateTime?
+
+  instituicaoId String
+  instituicao   Instituicao @relation(fields: [instituicaoId], references: [id])
+
+  // Coordenador/profissional pode estar vinculado a uma ou mais unidades
+  unidadeId     String?
+  unidade       Unidade?  @relation(fields: [unidadeId], references: [id])
+
+  profissional  Profissional?
+  sessoes       Sessao[]
+  logs          AuditLog[]
+  evolucoes     Evolucao[]
+  registros     RegistroProntuario[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  @@index([instituicaoId])
+  @@index([unidadeId])
+  @@map("usuarios")
+}
+
+model Sessao {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String                       // hash do refresh/sessão
+  ip           String?
+  userAgent    String?
+  expiraEm     DateTime
+  revogadaEm   DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@map("sessoes")
+}
+
+// ============================ UNIDADES =======================================
+
+model Unidade {
+  id             String   @id @default(cuid())
+  nome           String
+  cnes           String?  @unique
+  endereco       String?
+  municipio      String?
+  estado         String?  @db.VarChar(2)
+  cep            String?
+  telefone       String?
+  coordenador    String?
+  horarioFuncionamento String?
+
+  // Recursos disponíveis
+  salasTerapeuticas Int @default(0)
+  consultorios      Int @default(0)
+  espacoSensorial   Boolean @default(false)
+  salaIntegracao    Boolean @default(false)
+
+  instituicaoId  String
+  instituicao    Instituicao @relation(fields: [instituicaoId], references: [id])
+
+  usuarios       User[]
+  profissionais  Profissional[]
+  pacientes      Paciente[]
+  agendamentos   Agendamento[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
+
+  @@index([instituicaoId])
+  @@map("unidades")
+}
+
+// ============================ PROFISSIONAIS ==================================
+
+model Especialidade {
+  id            String   @id @default(cuid())
+  nome          String   @unique
+  profissionais Profissional[]
+  createdAt     DateTime @default(now())
+
+  @@map("especialidades")
+}
+
+model Profissional {
+  id                String   @id @default(cuid())
+  nome              String
+  cpf               String   @unique
+  conselho          String?              // CRM, CRP, CREFITO, etc.
+  numeroRegistro    String?
+  cargaHorariaSemanal Int?
+  ativo             Boolean  @default(true)
+
+  especialidadeId   String?
+  especialidade     Especialidade? @relation(fields: [especialidadeId], references: [id])
+
+  unidadeId         String?
+  unidade           Unidade?  @relation(fields: [unidadeId], references: [id])
+
+  // Conta de acesso ao sistema (opcional — nem todo profissional loga)
+  userId            String?  @unique
+  user              User?    @relation(fields: [userId], references: [id])
+
+  agendaSemanal     AgendaProfissional[]
+  agendamentos      Agendamento[]
+  evolucoes         Evolucao[]
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  deletedAt         DateTime?
+
+  @@index([especialidadeId])
+  @@index([unidadeId])
+  @@map("profissionais")
+}
+
+// Janelas de disponibilidade (0=Domingo ... 6=Sábado)
+model AgendaProfissional {
+  id             String   @id @default(cuid())
+  profissionalId String
+  profissional   Profissional @relation(fields: [profissionalId], references: [id], onDelete: Cascade)
+  diaSemana      Int      // 0-6
+  horaInicio     String   // "08:00"
+  horaFim        String   // "12:00"
+
+  @@index([profissionalId])
+  @@map("agenda_profissional")
+}
+
+// ============================ PACIENTES ======================================
+
+model Paciente {
+  id              String   @id @default(cuid())
+
+  // Dados pessoais
+  nomeCompleto    String
+  nomeSocial      String?
+  cpf             String?  @unique
+  rg              String?
+  cns             String?  @unique          // Cartão Nacional de Saúde
+  dataNascimento  DateTime
+  sexo            Sexo     @default(NAO_INFORMADO)
+  fotoUrl         String?
+
+  // Endereço
+  endereco        String?
+  municipio       String?
+  estado          String?  @db.VarChar(2)
+  cep             String?
+  telefones       String[]                  // múltiplos contatos
+  email           String?
+
+  // Status assistencial
+  status          StatusPaciente @default(FILA_ESPERA)
+
+  // Dados clínicos
+  diagnosticoPrincipal String?
+  cid10           String?
+  cid11           String?
+  dataDiagnostico DateTime?
+  medicoResponsavel String?
+  nivelSuporte    NivelSuporteTEA @default(NAO_AVALIADO)
+
+  unidadeId       String?
+  unidade         Unidade? @relation(fields: [unidadeId], references: [id])
+
+  responsaveis    Responsavel[]
+  comorbidades    Comorbidade[]
+  documentos      Documento[]
+  agendamentos    Agendamento[]
+  registros       RegistroProntuario[]
+  protocolos      ProtocoloAplicacao[]
+  planosTerapeuticos PTI[]
+  evolucoes       Evolucao[]
+  filaEspera      FilaEspera?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  @@index([unidadeId])
+  @@index([status])
+  @@index([nomeCompleto])
+  @@map("pacientes")
+}
+
+model Responsavel {
+  id             String   @id @default(cuid())
+  pacienteId     String
+  paciente       Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nome           String
+  grauParentesco String?               // pai, mãe, responsável legal, etc.
+  ehResponsavelLegal Boolean @default(false)
+  cpf            String?
+  telefone       String?
+  email          String?
+
+  @@index([pacienteId])
+  @@map("responsaveis")
+}
+
+model Comorbidade {
+  id          String   @id @default(cuid())
+  pacienteId  String
+  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  descricao   String                  // TDAH, Epilepsia, Def. intelectual, etc.
+  cid         String?
+  observacao  String?
+
+  @@index([pacienteId])
+  @@map("comorbidades")
+}
+
+// ============================ AGENDA =========================================
+
+model Agendamento {
+  id             String   @id @default(cuid())
+  pacienteId     String
+  paciente       Paciente @relation(fields: [pacienteId], references: [id])
+  profissionalId String
+  profissional   Profissional @relation(fields: [profissionalId], references: [id])
+  unidadeId      String
+  unidade        Unidade  @relation(fields: [unidadeId], references: [id])
+
+  tipo           TipoAgendamento
+  status         StatusAgendamento @default(AGENDADO)
+  inicio         DateTime
+  fim            DateTime
+  observacao     String?
+
+  confirmadoEm   DateTime?
+  realizadoEm    DateTime?
+  canceladoEm    DateTime?
+  motivoCancelamento String?
+
+  notificacoes   Notificacao[]
+  evolucao       Evolucao?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([pacienteId])
+  @@index([profissionalId])
+  @@index([unidadeId])
+  @@index([inicio])
+  @@index([status])
+  @@map("agendamentos")
+}
+
+model FilaEspera {
+  id          String   @id @default(cuid())
+  pacienteId  String   @unique
+  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  prioridade  Int      @default(0)   // maior = mais prioritário (fila inteligente)
+  motivo      String?
+  entrouEm    DateTime @default(now())
+
+  @@index([prioridade])
+  @@map("fila_espera")
+}
+
+// ============================ NOTIFICAÇÕES ===================================
+
+model Notificacao {
+  id             String   @id @default(cuid())
+  agendamentoId  String?
+  agendamento    Agendamento? @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  canal          CanalNotificacao
+  destino        String                 // telefone ou e-mail
+  conteudo       String
+  status         StatusNotificacao @default(PENDENTE)
+  agendadaPara   DateTime               // 7d / 1d / 2h antes
+  enviadaEm      DateTime?
+  erro           String?
+  createdAt      DateTime @default(now())
+
+  @@index([status])
+  @@index([agendadaPara])
+  @@map("notificacoes")
+}
+
+// ============================ PRONTUÁRIO =====================================
+
+model RegistroProntuario {
+  id          String   @id @default(cuid())
+  pacienteId  String
+  paciente    Paciente @relation(fields: [pacienteId], references: [id])
+  autorId     String
+  autor       User     @relation(fields: [autorId], references: [id])
+  tipo        TipoRegistroProntuario
+  conteudo    String   @db.Text
+
+  // Assinatura digital + versionamento
+  assinado    Boolean  @default(false)
+  assinaturaHash String?
+  versao      Int      @default(1)
+  versaoAnteriorId String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([pacienteId])
+  @@index([autorId])
+  @@map("registros_prontuario")
+}
+
+// ============================ PROTOCOLOS DE AVALIAÇÃO ========================
+// Estrutura genérica: a definição (itens/regras) fica em JSON, a aplicação
+// guarda as respostas e o resultado calculado. Suporta M-CHAT-R, CARS,
+// SNAP-IV, ATA e Escalas de Desenvolvimento sem alteração de schema.
+
+model Protocolo {
+  id          String   @id @default(cuid())
+  tipo        ProtocoloTipo
+  nome        String
+  versao      String   @default("1.0")
+  definicao   Json                       // itens, opções, regras de pontuação
+  ativo       Boolean  @default(true)
+
+  aplicacoes  ProtocoloAplicacao[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("protocolos")
+}
+
+model ProtocoloAplicacao {
+  id            String   @id @default(cuid())
+  protocoloId   String
+  protocolo     Protocolo @relation(fields: [protocoloId], references: [id])
+  pacienteId    String
+  paciente      Paciente @relation(fields: [pacienteId], references: [id])
+  aplicadoPor   String?               // userId do aplicador
+  respostas     Json                  // { itemId: valor }
+  pontuacaoTotal Float?
+  classificacao String?               // resultado interpretado
+  pdfUrl        String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  @@index([protocoloId])
+  @@index([pacienteId])
+  @@map("protocolo_aplicacoes")
+}
+
+// ============================ PTI ============================================
+
+model PTI {
+  id          String   @id @default(cuid())
+  pacienteId  String
+  paciente    Paciente @relation(fields: [pacienteId], references: [id])
+  titulo      String
+  status      StatusPTI @default(EM_ELABORACAO)
+  inicio      DateTime?
+  prazo       DateTime?
+
+  objetivos   PTIObjetivo[]
+  reavaliacoes PTIReavaliacao[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([pacienteId])
+  @@map("planos_terapeuticos")
+}
+
+model PTIObjetivo {
+  id            String  @id @default(cuid())
+  ptiId         String
+  pti           PTI     @relation(fields: [ptiId], references: [id], onDelete: Cascade)
+  descricao     String
+  meta          String?
+  estrategias   String?
+  responsavel   String?
+  prazo         DateTime?
+  percentualExecucao Int @default(0)    // 0-100
+
+  @@index([ptiId])
+  @@map("pti_objetivos")
+}
+
+model PTIReavaliacao {
+  id        String   @id @default(cuid())
+  ptiId     String
+  pti       PTI      @relation(fields: [ptiId], references: [id], onDelete: Cascade)
+  data      DateTime @default(now())
+  resumo    String   @db.Text
+  indicadores Json?
+
+  @@index([ptiId])
+  @@map("pti_reavaliacoes")
+}
+
+// ============================ EVOLUÇÃO TERAPÊUTICA ===========================
+
+model Evolucao {
+  id             String   @id @default(cuid())
+  pacienteId     String
+  paciente       Paciente @relation(fields: [pacienteId], references: [id])
+  profissionalId String
+  profissional   Profissional @relation(fields: [profissionalId], references: [id])
+  autorId        String
+  autor          User     @relation(fields: [autorId], references: [id])
+
+  agendamentoId  String?  @unique
+  agendamento    Agendamento? @relation(fields: [agendamentoId], references: [id])
+
+  data           DateTime @default(now())
+  tipoAtendimento String?
+  evolucao       String   @db.Text
+  intercorrencias String?
+  conduta        String?
+
+  documentos     Documento[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([pacienteId])
+  @@index([profissionalId])
+  @@map("evolucoes")
+}
+
+// ============================ DOCUMENTOS =====================================
+
+model Documento {
+  id          String   @id @default(cuid())
+  pacienteId  String?
+  paciente    Paciente? @relation(fields: [pacienteId], references: [id])
+  evolucaoId  String?
+  evolucao    Evolucao? @relation(fields: [evolucaoId], references: [id])
+
+  tipo        TipoDocumento
+  nome        String
+  url         String                    // objeto no storage (S3/MinIO/disco)
+  mimeType    String?
+  tamanho     Int?
+  versao      Int      @default(1)
+  assinado    Boolean  @default(false)
+  assinaturaHash String?
+
+  createdAt   DateTime @default(now())
+  deletedAt   DateTime?
+
+  @@index([pacienteId])
+  @@map("documentos")
+}
+
+// ============================ AUDITORIA / LGPD ===============================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  acao        AuditAcao
+  entidade    String                    // ex.: "Paciente"
+  entidadeId  String?
+  diff        Json?                     // valores antes/depois
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([entidade, entidadeId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
