@@ -13,7 +13,8 @@ export async function salvarArquivo(buffer: Buffer, nomeOriginal: string): Promi
   const ext = nomeOriginal.includes(".") ? "." + nomeOriginal.split(".").pop() : "";
   const key = `${randomUUID()}${ext}`;
   if (usarS3) {
-    const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3");
+    const mod = "@aws-sdk/client-s3";
+    const { S3Client, PutObjectCommand } = await import(mod);
     const client = new S3Client({
       endpoint: process.env.S3_ENDPOINT, region: process.env.S3_REGION || "us-east-1", forcePathStyle: true,
       credentials: { accessKeyId: process.env.S3_ACCESS_KEY!, secretAccessKey: process.env.S3_SECRET_KEY! },
@@ -28,7 +29,8 @@ export async function salvarArquivo(buffer: Buffer, nomeOriginal: string): Promi
 
 export async function lerArquivo(key: string): Promise<Buffer> {
   if (usarS3) {
-    const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3");
+    const mod = "@aws-sdk/client-s3";
+    const { S3Client, GetObjectCommand } = await import(mod);
     const client = new S3Client({
       endpoint: process.env.S3_ENDPOINT, region: process.env.S3_REGION || "us-east-1", forcePathStyle: true,
       credentials: { accessKeyId: process.env.S3_ACCESS_KEY!, secretAccessKey: process.env.S3_SECRET_KEY! },

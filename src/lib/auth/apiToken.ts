@@ -2,7 +2,11 @@ import { SignJWT, jwtVerify } from "jose";
 import type { UserRole } from "@prisma/client";
 
 const AUD = "cetea-api";
-const secret = () => new TextEncoder().encode(process.env.JWT_SECRET);
+const secret = () => {
+  const v = process.env.JWT_SECRET;
+  if (!v || v.length < 16) throw new Error("JWT_SECRET ausente ou muito curto");
+  return new TextEncoder().encode(v);
+};
 
 export interface ApiPayload { sub: string; role: UserRole; instituicaoId: string; unidadeId?: string | null }
 

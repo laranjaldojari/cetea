@@ -14,11 +14,11 @@ export function gerarSelo(params: { conteudo: string; autorId: string; quando: D
 
 /** Caminha a cadeia de versões anteriores (mais nova → mais antiga). */
 export async function historicoVersoes(registroId: string) {
-  const historico = [];
+  const historico: any[] = [];
   let atualId: string | null = registroId;
   // limite de segurança contra ciclos
   for (let i = 0; i < 100 && atualId; i++) {
-    const r = await prisma.registroProntuario.findUnique({
+    const r: any = await prisma.registroProntuario.findUnique({
       where: { id: atualId },
       include: { autor: { select: { nome: true } } },
     });

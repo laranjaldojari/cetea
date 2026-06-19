@@ -38,11 +38,11 @@ export async function relatorioAtendimentos(f: FiltroRelatorio) {
   ]);
   const profIds = porProf.map((p) => p.profissionalId);
   const profs = await prisma.profissional.findMany({ where: { id: { in: profIds } }, select: { id: true, nome: true, especialidade: { select: { nome: true } } } });
-  const nomeProf = new Map(profs.map((p) => [p.id, p.nome]));
-  const espDeProf = new Map(profs.map((p) => [p.id, p.especialidade?.nome ?? "—"]));
+  const nomeProf = new Map<string, string>(profs.map((p) => [p.id, p.nome]));
+  const espDeProf = new Map<string, string>(profs.map((p) => [p.id, p.especialidade?.nome ?? "—"]));
   const unidIds = porUnidade.map((u) => u.unidadeId);
   const unids = await prisma.unidade.findMany({ where: { id: { in: unidIds } }, select: { id: true, nome: true } });
-  const nomeUnid = new Map(unids.map((u) => [u.id, u.nome]));
+  const nomeUnid = new Map<string, string>(unids.map((u) => [u.id, u.nome]));
 
   const porEspecialidade = new Map<string, number>();
   for (const p of porProf) {
