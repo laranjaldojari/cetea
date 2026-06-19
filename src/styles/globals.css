@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =======================================================================
+   Tokens de tema. As cores de marca (--brand*) são white-label:
+   a instituição define e elas são injetadas no <html style="..."> em runtime.
+   ======================================================================= */
+:root {
+  --brand: 14 124 134;        /* teal institucional */
+  --brand-dark: 11 85 99;
+  --brand-accent: 245 158 11;
+
+  --surface: 255 255 255;
+  --surface-2: 247 249 250;
+  --line: 226 232 235;
+  --ink: 17 28 33;
+  --ink-soft: 90 105 112;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui;
+}
+
+.dark {
+  --surface: 13 19 22;
+  --surface-2: 20 28 32;
+  --line: 38 49 55;
+  --ink: 235 241 244;
+  --ink-soft: 148 163 171;
+}
+
+* { border-color: rgb(var(--line)); }
+
+html, body { height: 100%; }
+body {
+  background: rgb(var(--surface-2));
+  color: rgb(var(--ink));
+  font-feature-settings: "tnum" 1; /* números tabulares p/ dados clínicos */
+}
+
+/* Acessibilidade: foco visível e movimento reduzido */
+:focus-visible { outline: 2px solid rgb(var(--brand)); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
