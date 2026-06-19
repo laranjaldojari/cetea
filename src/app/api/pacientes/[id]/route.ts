@@ -4,6 +4,7 @@ import { getSessao } from "@/lib/auth/session";
 import { podeEscrever } from "@/lib/rbac";
 import { pacienteSchema } from "@/lib/validators/paciente";
 import { dadosEscalares, dadosResponsaveis, dadosComorbidades } from "@/server/paciente";
+import { unidadeOk } from "@/lib/escopo";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const s = await getSessao();
@@ -13,6 +14,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     include: { responsaveis: true, comorbidades: true },
   });
   if (!paciente) return NextResponse.json({ erro: "Paciente não encontrado" }, { status: 404 });
+  if (!unidadeOk(s, paciente.unidadeId)) return NextResponse.json({ erro: "Paciente não encontrado" }, { status: 404 });
   return NextResponse.json({ paciente });
 }
 
@@ -27,6 +29,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     return NextResponse.json({ erro: "Dados inválidos", detalhes: parsed.error.flatten() }, { status: 400 });
   }
   const d = parsed.data;
+
+  const alvo = await prisma.paciente.findUnique({ where: { id: params.id }, select: { unidadeId: true } });
+  if (!alvo || !unidadeOk(s, alvo.unidadeId)) return NextResponse.json({ erro: "Paciente não encontrado" }, { status: 404 });
 
   try {
     // Substitui aninhados (deleteMany + create) e atualiza escalares em transação.
@@ -57,6 +62,8 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   if (!s) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
   if (!podeEscrever(s.role)) return NextResponse.json({ erro: "Sem permissão" }, { status: 403 });
 
+  const alvo = await prisma.paciente.findUnique({ where: { id: params.id }, select: { unidadeId: true } });
+  if (!alvo || !unidadeOk(s, alvo.unidadeId)) return NextResponse.json({ erro: "Paciente não encontrado" }, { status: 404 });
   await prisma.paciente.update({ where: { id: params.id }, data: { deletedAt: new Date(), status: "INATIVO" } });
   await prisma.auditLog.create({ data: { userId: s.sub, acao: "DELETE", entidade: "Paciente", entidadeId: params.id } });
   return NextResponse.json({ ok: true });

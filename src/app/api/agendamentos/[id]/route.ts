@@ -4,6 +4,7 @@ import { getSessao } from "@/lib/auth/session";
 import { podeEscrever } from "@/lib/rbac";
 import { atualizarAgendamentoSchema } from "@/lib/validators/agendamento";
 import { detectarConflito } from "@/server/agenda";
+import { unidadeOk } from "@/lib/escopo";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const s = await getSessao();
@@ -16,6 +17,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const atual = await prisma.agendamento.findUnique({ where: { id: params.id } });
   if (!atual) return NextResponse.json({ erro: "Agendamento não encontrado" }, { status: 404 });
+  if (!unidadeOk(s, atual.unidadeId)) return NextResponse.json({ erro: "Agendamento não encontrado" }, { status: 404 });
 
   const d = parsed.data;
   let dados: any = {};

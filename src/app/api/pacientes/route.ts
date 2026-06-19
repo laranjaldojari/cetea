@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     const paciente = await prisma.paciente.create({
       data: {
         ...dadosEscalares(d),
-        unidadeId: d.unidadeId || s.unidadeId || null,
+        unidadeId: s.role === "ADMIN" ? (d.unidadeId || s.unidadeId || null) : (s.unidadeId || null),
         responsaveis: { create: dadosResponsaveis(d) },
         comorbidades: { create: dadosComorbidades(d) },
       },

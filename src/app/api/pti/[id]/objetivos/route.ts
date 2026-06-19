@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSessao } from "@/lib/auth/session";
 import { podeEscrever } from "@/lib/rbac";
 import { objetivoSchema } from "@/lib/validators/pti";
+import { unidadeOk } from "@/lib/escopo";
 
 const nulo = (v?: string | null) => (v && v.trim() !== "" ? v : null);
 
@@ -15,6 +16,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const parsed = objetivoSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ erro: "Dados inválidos" }, { status: 400 });
   const d = parsed.data;
+  const pti = await prisma.pTI.findUnique({ where: { id: params.id }, select: { paciente: { select: { unidadeId: true } } } });
+  if (!pti || !unidadeOk(s, pti.paciente.unidadeId)) return NextResponse.json({ erro: "Não encontrado" }, { status: 404 });
 
   const objetivo = await prisma.pTIObjetivo.create({
     data: {

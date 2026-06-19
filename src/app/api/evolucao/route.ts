@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSessao } from "@/lib/auth/session";
 import { podeEscrever } from "@/lib/rbac";
 import { criarEvolucaoSchema } from "@/lib/validators/evolucao";
+import { pacienteNoEscopo } from "@/lib/escopo";
 
 const nulo = (v?: string | null) => (v && v.trim() !== "" ? v : null);
 
@@ -15,6 +16,7 @@ export async function POST(req: Request) {
   const parsed = criarEvolucaoSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ erro: "Dados inválidos", detalhes: parsed.error.flatten() }, { status: 400 });
   const d = parsed.data;
+  if (!(await pacienteNoEscopo(s, d.pacienteId))) return NextResponse.json({ erro: "Paciente fora do escopo" }, { status: 403 });
 
   try {
     const evolucao = await prisma.evolucao.create({

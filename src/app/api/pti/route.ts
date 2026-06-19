@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSessao } from "@/lib/auth/session";
 import { podeEscrever } from "@/lib/rbac";
 import { criarPtiSchema } from "@/lib/validators/pti";
+import { pacienteNoEscopo } from "@/lib/escopo";
 
 export async function POST(req: Request) {
   const s = await getSessao();
@@ -13,6 +14,7 @@ export async function POST(req: Request) {
   const parsed = criarPtiSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ erro: "Dados inválidos" }, { status: 400 });
   const d = parsed.data;
+  if (!(await pacienteNoEscopo(s, d.pacienteId))) return NextResponse.json({ erro: "Paciente fora do escopo" }, { status: 403 });
 
   const pti = await prisma.pTI.create({
     data: {

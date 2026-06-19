@@ -3,6 +3,7 @@ import { getSessao } from "@/lib/auth/session";
 import { podeEscrever } from "@/lib/rbac";
 import { criarAgendamentoSchema } from "@/lib/validators/agendamento";
 import { criarAgendamento, listarPorIntervalo } from "@/server/agenda";
+import { unidadeOk, pacienteNoEscopo } from "@/lib/escopo";
 
 export async function GET(req: Request) {
   const s = await getSessao();
@@ -33,6 +34,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ erro: "Dados inválidos", detalhes: parsed.error.flatten() }, { status: 400 });
   }
 
+  if (!unidadeOk(s, parsed.data.unidadeId) || !(await pacienteNoEscopo(s, parsed.data.pacienteId))) {
+    return NextResponse.json({ erro: "Paciente ou unidade fora do escopo" }, { status: 403 });
+  }
   const r = await criarAgendamento(parsed.data, s.sub);
   if ("erro" in r) {
     return NextResponse.json(

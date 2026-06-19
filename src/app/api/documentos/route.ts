@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getSessao } from "@/lib/auth/session";
 import { podeEscrever } from "@/lib/rbac";
 import { salvarArquivo } from "@/server/storage";
+import { pacienteNoEscopo } from "@/lib/escopo";
 
 const TIPOS = ["LAUDO", "EXAME", "RELATORIO", "RECEITA", "ENCAMINHAMENTO", "OUTRO"];
 
@@ -11,8 +12,9 @@ export async function GET(req: Request) {
   if (!s) return NextResponse.json({ erro: "Não autenticado" }, { status: 401 });
   const { searchParams } = new URL(req.url);
   const pacienteId = searchParams.get("pacienteId");
+  const escopo = s.role !== "ADMIN" && s.unidadeId ? { paciente: { unidadeId: s.unidadeId } } : {};
   const documentos = await prisma.documento.findMany({
-    where: { deletedAt: null, ...(pacienteId ? { pacienteId } : {}) },
+    where: { deletedAt: null, ...escopo, ...(pacienteId ? { pacienteId } : {}) },
     orderBy: [{ nome: "asc" }, { versao: "desc" }],
   });
   return NextResponse.json({ documentos });
@@ -30,6 +32,7 @@ export async function POST(req: Request) {
   if (!(file instanceof Blob) || !pacienteId) return NextResponse.json({ erro: "Arquivo e paciente são obrigatórios" }, { status: 400 });
   if (!TIPOS.includes(tipo)) return NextResponse.json({ erro: "Tipo inválido" }, { status: 400 });
   if (file.size > 25 * 1024 * 1024) return NextResponse.json({ erro: "Arquivo excede 25 MB" }, { status: 400 });
+  if (!(await pacienteNoEscopo(s, pacienteId))) return NextResponse.json({ erro: "Paciente fora do escopo" }, { status: 403 });
 
   const nome = (file as any).name || "documento";
   const buffer = Buffer.from(await file.arrayBuffer());

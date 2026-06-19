@@ -3,8 +3,13 @@ import { prisma } from "@/lib/db";
 import { verificarSenha } from "@/lib/auth/password";
 import { criarSessao } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validators/auth";
+import { limitar, ipDe } from "@/lib/ratelimit";
 
 export async function POST(req: Request) {
+  const ip = ipDe(req);
+  if (!limitar(`login:${ip}`, 8, 60_000).ok) {
+    return NextResponse.json({ erro: "Muitas tentativas. Aguarde um minuto." }, { status: 429 });
+  }
   const body = await req.json().catch(() => null);
   const parsed = loginSchema.safeParse(body);
   if (!parsed.success) {
