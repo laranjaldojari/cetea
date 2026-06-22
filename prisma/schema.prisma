@@ -15,7 +15,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("postgresql://cetea_user:kamenf23pVryclou7UE6@cetea-database-etbekc:5432/cetea_db")
 }
 
 // ============================ ENUMS ==========================================
