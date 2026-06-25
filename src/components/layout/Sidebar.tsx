@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard, Users, CalendarDays, Stethoscope, Building2,
-  ClipboardList, ListChecks, FileText, BarChart3, FolderArchive, Activity, MessageCircle, ChevronLeft,
+  ClipboardList, ListChecks, FileText, BarChart3, FolderArchive, Activity, MessageCircle, UserCog, ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ const MENU = [
   { href: "/pti", label: "Plano Terapêutico", icon: ListChecks },
   { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
   { href: "/comunicacao", label: "Comunicação", icon: MessageCircle },
+  { href: "/usuarios", label: "Usuários", icon: UserCog },
   { href: "/documentos", label: "Documentos", icon: FolderArchive },
 ];
 

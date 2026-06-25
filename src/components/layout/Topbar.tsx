@@ -1,5 +1,6 @@
 "use client";
 import { Search, LogOut } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
 import { Notificacoes } from "./Notificacoes";
@@ -20,10 +21,10 @@ export function Topbar({ nome, papel }: { nome: string; papel: string }) {
       <div className="ml-auto flex items-center gap-2">
         <Notificacoes />
         <ThemeToggle />
-        <div className="ml-1 hidden text-right sm:block">
+        <Link href="/conta" className="ml-1 hidden rounded-lg px-2 py-1 text-right hover:bg-surface-2 sm:block">
           <p className="text-sm font-medium leading-none">{nome}</p>
           <p className="text-xs text-ink-soft">{papel}</p>
-        </div>
+        </Link>
         <button onClick={sair} aria-label="Sair" className="grid h-9 w-9 place-items-center rounded-lg border hover:bg-surface-2">
           <LogOut className="h-4 w-4" />
         </button>
