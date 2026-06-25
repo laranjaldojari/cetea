@@ -5,8 +5,8 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: ehhvr5ahlket4m14
+      POSTGRES_USER: cetea
+      POSTGRES_PASSWORD: cetea
       POSTGRES_DB: cetea
     volumes:
       - cetea_db:/var/lib/postgresql/data
