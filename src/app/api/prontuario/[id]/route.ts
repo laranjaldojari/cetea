@@ -20,7 +20,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const registro = await prisma.registroProntuario.update({
     where: { id: params.id },
-    data: { conteudo: parsed.data.conteudo, ...(parsed.data.tipo ? { tipo: parsed.data.tipo } : {}) },
+    data: { conteudo: parsed.data.conteudo, ...(parsed.data.tipo ? { tipo: parsed.data.tipo } : {}), ...(parsed.data.dados !== undefined ? { dados: parsed.data.dados } : {}) },
   });
   await prisma.auditLog.create({ data: { userId: s.sub, acao: "UPDATE", entidade: "RegistroProntuario", entidadeId: params.id } });
   return NextResponse.json({ registro });

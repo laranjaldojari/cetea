@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   if (!(await pacienteNoEscopo(s, parsed.data.pacienteId))) return NextResponse.json({ erro: "Paciente fora do escopo" }, { status: 403 });
 
   const registro = await prisma.registroProntuario.create({
-    data: { pacienteId: parsed.data.pacienteId, autorId: s.sub, tipo: parsed.data.tipo, conteudo: parsed.data.conteudo },
+    data: { pacienteId: parsed.data.pacienteId, autorId: s.sub, tipo: parsed.data.tipo, conteudo: parsed.data.conteudo, dados: parsed.data.dados ?? undefined },
   });
   await prisma.auditLog.create({ data: { userId: s.sub, acao: "CREATE", entidade: "RegistroProntuario", entidadeId: registro.id } });
   return NextResponse.json({ registro }, { status: 201 });

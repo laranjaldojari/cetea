@@ -40,7 +40,7 @@ export default async function ProntuarioPage({ params }: { params: { id: string 
         <div className="space-y-3">
           {atuais.map((r) => (
             <RegistroCard key={r.id} registro={{
-              id: r.id, tipo: r.tipo, conteudo: r.conteudo, assinado: r.assinado,
+              id: r.id, pacienteId: paciente.id, tipo: r.tipo, conteudo: r.conteudo, dados: r.dados, assinado: r.assinado,
               assinaturaHash: r.assinaturaHash, versao: r.versao, versaoAnteriorId: r.versaoAnteriorId,
               autorNome: r.autor?.nome ?? "—", createdAt: r.createdAt.toISOString(),
             }} />

@@ -24,6 +24,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       autorId: s.sub,
       tipo: parsed.data.tipo ?? anterior.tipo,
       conteudo: parsed.data.conteudo,
+      dados: parsed.data.dados !== undefined ? parsed.data.dados : (anterior.dados ?? undefined),
       versao: anterior.versao + 1,
       versaoAnteriorId: anterior.id,
     },

@@ -37,3 +37,23 @@ o que está pronto e a ordem sugerida de evolução.
 - ✅ **API REST pública v1** (`/api/v1`) com autenticação JWT Bearer, endpoints de pacientes e agendamentos, OpenAPI em `/api/v1/openapi` e documentação navegável (Swagger UI) em `/api-docs`.
 - ✅ **Hardening:** proteção CSRF por origem para rotas com cookie, rate limiting (token e API v1), e revisão LGPD documentada em `docs/LGPD.md`.
 - ✅ **Notificações em tempo real** (feed de próximos atendimentos no sino, atualização periódica) e ✅ **testes automatizados** (Vitest) do motor de protocolos, CSV, RBAC, datas e rate limit — 12 testes passando. *(Push via SSE/WebSocket e observabilidade ficam como evolução.)*
+
+## ✅ Módulo de Usuários (controle de acesso)
+- Gestão de usuários do sistema: listar, criar, editar, definir perfil (5 papéis), unidade e ativar/desativar.
+- Administrador gerencia todos; Coordenador gerencia apenas a própria unidade e não atribui Admin/Coordenador.
+- Proteções contra autoexclusão e autorrebaixamento. Troca de senha própria em "Minha conta".
+
+## ✅ Módulo de Configurações
+- Painel (somente Administrador) para personalizar o sistema:
+  - **Identidade:** nome, sigla, CNPJ, CNES, endereço, telefone, e-mail, site.
+  - **Aparência (white-label):** logotipo e 3 cores de marca, com pré-visualização ao vivo; aplicadas em todo o sistema (cores via variáveis CSS, nome/logo na barra lateral).
+  - **Agenda:** duração padrão de atendimento e horários de funcionamento.
+- Menu lateral passou a respeitar o perfil (Configurações só para Admin; Usuários/Comunicação para Admin e Coordenador).
+- *Mudança de schema:* novos campos em `Instituicao` → requer `db:push` no deploy.
+
+## ✅ Prontuário reformulado + Receita
+- Novos tipos de registro: **Receita médica**, **Atestado** e **Solicitação de exames**, além dos clínicos existentes (anamnese, avaliação, evolução, parecer, interconsulta, encaminhamento).
+- Formulário **adaptativo** por tipo: receita com lista de medicamentos (apresentação, posologia, quantidade) e orientações; atestado com finalidade/afastamento/CID; exames com lista e indicação clínica. Tipos clínicos seguem em texto livre.
+- **Impressão profissional** de documentos com cabeçalho da instituição (logo, nome, endereço, CNPJ/CNES — vindo das Configurações), identificação do paciente, corpo formatado (receita numerada), linha de assinatura e selo de integridade; marca "rascunho" quando não assinado.
+- Mantidos assinatura/selo SHA-256, imutabilidade após assinar e versionamento. Conteúdo estruturado guardado em `dados (Json)`.
+- *Mudança de schema:* novos valores de enum + campo `dados` → requer `db:push` no deploy.

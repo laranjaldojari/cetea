@@ -13,15 +13,15 @@ controle de acesso por perfil, auditoria e aderência à LGPD.
 
 ## Stack
 
-| Camada        | Tecnologia                          | Motivo |
-|---------------|-------------------------------------|--------|
-| Frontend/UI   | Next.js 14 (App Router) + React 18  | SSR, rotas e UI no mesmo deploy |
-| Estilo        | Tailwind CSS (tema via CSS vars)    | White-label e tema claro/escuro |
-| Backend/API   | Next.js Route Handlers (REST + JWT) | API própria + base para e-SUS/CNES/mobile |
-| ORM           | Prisma                              | Migrations versionadas e tipagem ponta a ponta |
-| Banco         | PostgreSQL 16                       | Requisito do projeto, robusto p/ saúde |
-| Auth          | JWT (jose) + bcrypt + cookie httpOnly | Sessão segura, RBAC por perfil |
-| Validação     | Zod                                 | Validação de entrada em todas as rotas |
+| Camada        | Tecnologia                                  | Motivo |
+|---------------|---------------------------------------------|--------|
+| Frontend/UI   | Next.js 14 (App Router) + React 18          | SSR, rotas e UI no mesmo deploy |
+| Estilo        | Tailwind CSS (tema via CSS vars)            | White-label e tema claro/escuro |
+| Backend/API   | Next.js Route Handlers (REST + JWT)         | API própria + base para e-SUS/CNES/mobile |
+| ORM           | Prisma                                      | Migrations versionadas e tipagem ponta a ponta |
+| Banco         | PostgreSQL 16                               | Requisito do projeto, robusto p/ saúde |
+| Auth          | JWT (jose) + bcrypt + cookie httpOnly       | Sessão segura, RBAC por perfil |
+| Validação     | Zod                                         | Validação de entrada em todas as rotas |
 | Deploy        | Docker (standalone) → Dokploy/VPS Hostinger | Container enxuto, migrations no boot |
 
 > A escolha por Next.js full-stack reduz a complexidade de operar em um único VPS.
@@ -56,11 +56,11 @@ docker compose up --build     # sobe Postgres + app
 
 | Perfil        | E-mail                      | Senha       |
 |---------------|-----------------------------|-------------|
-| Administrador | admin@cetea.gov.br          | `cetea@123` |
-| Coordenador   | coordenador@cetea.gov.br    | `cetea@123` |
-| Recepção      | recepcao@cetea.gov.br       | `cetea@123` |
-| Profissional  | profissional@cetea.gov.br   | `cetea@123` |
-| Auditor       | auditor@cetea.gov.br        | `cetea@123` |
+| Administrador | admin@cetea.gov.br          | `#####@999` |
+| Coordenador   | coordenador@cetea.gov.br    | `#####@999` |
+| Recepção      | recepcao@cetea.gov.br       | `#####@999` |
+| Profissional  | profissional@cetea.gov.br   | `#####@999` |
+| Auditor       | auditor@cetea.gov.br        | `*****@999` |
 
 > Troque as senhas e o `JWT_SECRET` antes de qualquer uso real.
 

@@ -93,6 +93,9 @@ enum TipoRegistroProntuario {
   PARECER
   ENCAMINHAMENTO
   INTERCONSULTA
+  RECEITA
+  ATESTADO
+  SOLICITACAO_EXAME
 }
 
 enum ProtocoloTipo {
@@ -130,6 +133,20 @@ model Instituicao {
   corPrimaria   String   @default("#0E7C86")
   corSecundaria String   @default("#0B5563")
   corAcento     String   @default("#F59E0B")
+
+  // Dados institucionais
+  sigla         String?
+  cnpj          String?
+  cnes          String?
+  endereco      String?
+  telefone      String?
+  email         String?
+  site          String?
+
+  // Parâmetros de agenda
+  duracaoPadraoMin Int    @default(50)
+  horaAbertura     String @default("08:00")
+  horaFechamento   String @default("18:00")
 
   unidades      Unidade[]
   usuarios      User[]
@@ -442,6 +459,7 @@ model RegistroProntuario {
   autor       User     @relation(fields: [autorId], references: [id])
   tipo        TipoRegistroProntuario
   conteudo    String   @db.Text
+  dados       Json?    // conteúdo estruturado (ex.: medicamentos da receita)
 
   // Assinatura digital + versionamento
   assinado    Boolean  @default(false)
